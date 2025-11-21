@@ -1,0 +1,228 @@
+[
+  {
+    "id": 1,
+    "text": "A company collects data for temperature, humidity, and atmospheric pressure in cities across multiple continents. The average volume of data that the company collects from each site daily is 500 GB. Each site has a high-speed Internet connection. The company wants to aggregate the data from all these global sites as quickly as possible in a single Amazon S3 bucket. The solution must minimize operational complexity. Which solution meets these requirements?",
+    "options": [
+      "Turn on S3 Transfer Acceleration on the destination S3 bucket. Use multipart uploads to directly upload site data to the destination S3 bucket.",
+      "Upload the data from each site to an S3 bucket in the closest Region. Use S3 Cross-Region Replication to copy objects to the destination S3 bucket. Then remove the data from the origin S3 bucket.",
+      "Schedule AWS Snowball Edge Storage Optimized device jobs daily to transfer data from each site to the closest Region. Use S3 Cross-Region Replication to copy objects to the destination S3 bucket.",
+      "Upload the data from each site to an Amazon EC2 instance in the closest Region. Store the data in an Amazon Elastic Block Store (Amazon EBS) volume. At regular intervals, take an EBS snapshot and copy it to the Region that contains the destination S3 bucket. Restore the EBS volume in that Region."
+    ],
+    "explanation": [
+      "<b>The correct answer is</b> (A) because it directly addresses the requirements of speed, minimal operational complexity, and leveraging existing high-speed internet connections. S3 Transfer Acceleration utilizes AWS's globally distributed edge locations to optimize data transfer speeds into an S3 bucket. Multipart uploads enhance reliability and speed, especially for large files (500 GB daily). This method avoids the complexity of managing intermediate buckets, EC2 instances, or physical devices like Snowball Edge.\n",
+      "<b>Option (B)</b> introduces unnecessary complexity with multiple S3 buckets and cross-region replication, increasing management overhead and costs. While replication handles data transfer, Transfer Acceleration is designed specifically for speed optimization in direct uploads.",
+      "<b>Option (C)</b> is unsuitable because AWS Snowball Edge is intended for environments with limited or no internet connectivity. Given the high-speed internet connection available at each site, Snowball Edge adds unnecessary logistical complexity and delays.",
+      "<b>Option (D)</b> involves managing EC2 instances, EBS volumes, and snapshots, significantly increasing operational overhead. Transferring EBS snapshots is also not an optimized method for data aggregation into S3 compared to direct S3 uploads, especially regarding speed and cost. The described method is more appropriate for disaster recovery of complete systems rather than daily data aggregation.\n",
+      "In summary, S3 Transfer Acceleration with multipart uploads is the most efficient and straightforward solution for quickly aggregating data from global sites into a single S3 bucket, aligning with the requirements for speed, minimal operational overhead, and leveraging existing high-speed internet."
+    ],
+    "correctAnswers": [
+      0
+    ]
+  },
+  {
+    "id": 2,
+    "text": "A company needs the ability to analyze the log files of its proprietary application. The logs are stored in JSON format in an Amazon S3 bucket. Queries will be simple and will run on-demand. A solutions architect needs to perform the analysis with minimal changes to the existing architecture. What should the solutions architect do to meet these requirements with the LEAST amount of operational overhead?",
+    "options": [
+      "Use Amazon Redshift to load all the content into one place and run the SQL queries as needed.",
+      "Use Amazon CloudWatch Logs to store the logs. Run SQL queries as needed from the Amazon CloudWatch console.",
+      "Use Amazon Athena directly with Amazon S3 to run the queries as needed.",
+      "Use AWS Glue to catalog the logs. Use a transient Apache Spark cluster on Amazon EMR to run the SQL queries as needed."
+    ],
+    "explanation": [
+      "The best solution is <b>C. Use Amazon Athena directly with Amazon S3 to run the queries as needed.</b>",
+      "<b>Here's why</b>:",
+      "<b>Minimal Operational Overhead</b>: Athena is serverless. It eliminates the need to provision or manage infrastructure. It also allows you to query data directly in S3, which is a major advantage as the logs are already stored there.",
+      "<b>Cost-Effectiveness</b>: Athena charges based on the amount of data scanned per query. Since the queries are on-demand and presumably infrequent, this pay-per-query model is the most cost-effective option.",
+      "<b>Simplicity</b>: Athena allows direct querying of JSON data stored in S3 using standard SQL. The log format is already compatible.",
+      "Let's examine why the other options are less ideal:",
+      "<b>A. Amazon Redshift</b>: Redshift requires setting up and managing a data warehouse cluster. This involves provisioning resources, handling scaling, and performing ETL (Extract, Transform, Load) to move the JSON data from S3 into Redshift. This adds significant operational overhead and cost compared to Athena.",
+      "<b>B. Amazon CloudWatch Logs</b>: CloudWatch Logs are best suited for real-time monitoring and centralized logging, not for complex analytical queries. While CloudWatch Logs Insights exists, its query language isn't SQL, and it's not designed for ad-hoc analysis of JSON files stored elsewhere (like S3). Migrating the logs would also be required.",
+      "<b>D. AWS Glue and Amazon EMR</b>: This solution is an overkill. AWS Glue is for ETL and data cataloging, and EMR is for big data processing using frameworks like Spark. While suitable for very large and complex data analysis scenarios, it introduces unnecessary complexity and operational overhead for the stated requirements of simple, on-demand queries. It also has high cost compared to using AWS Athena.",
+      "Therefore, Athena aligns best with the requirement of minimal operational overhead and allows simple SQL queries on JSON logs stored in S3, making it the superior choice."
+    ],
+    "correctAnswers": [
+      2
+    ]
+  },
+  {
+    "id": 3,
+    "text": "A company uses AWS Organizations to manage multiple AWS accounts for different departments. The management account has an Amazon S3 bucket that contains project reports. The company wants to limit access to this S3 bucket to only users of accounts within the organization in AWS Organizations. Which solution meets these requirements with the LEAST amount of operational overhead?",
+    "options": [
+      "Add the aws PrincipalOrgID global condition key with a reference to the organization ID to the S3 bucket policy.",
+      "Create an organizational unit (OU) for each department. Add the aws:PrincipalOrgPaths global condition key to the S3 bucket policy.",
+      "Use AWS CloudTrail to monitor the CreateAccount, InviteAccountToOrganization, LeaveOrganization, and RemoveAccountFromOrganization events. Update the S3 bucket policy accordingly.",
+      "Tag each user that needs access to the S3 bucket. Add the aws:PrincipalTag global condition key to the S3 bucket policy."
+    ],
+    "explanation": [
+      "<b>The correct answer is</b> A. <b>Here's why</b>:",
+      "<b>Option A</b> leverages the aws:PrincipalOrgID global condition key in the S3 bucket policy. This condition key directly references the the AWS Organizations organization ID. When applied, the S3 bucket will only allow access from AWS accounts that belong to the specified organization. This approach offers the least operational overhead because it's a simple, direct configuration within the S3 bucket policy, automatically encompassing all current and future accounts within the organization without requiring ongoing updates.",
+      "<b>Option B</b>, using aws:PrincipalOrgPaths, involves creating organizational units (OUs) for each department. While it provides more granular control based on OU membership, it necessitates managing and updating the S3 bucket policy whenever OUs change or accounts are moved, increasing operational overhead. It's unnecessary complexity for the stated requirement of granting access to all accounts within the entire organization.",
+      "<b>Option C</b>, using CloudTrail to monitor organizational changes and then updating the S3 bucket policy, is unnecessarily complex and creates significant operational overhead. It requires implementing a custom solution to react to CloudTrail events and programmatically modify the S3 bucket policy, which is prone to errors and maintenance issues. It is also not a real-time mechanism; there would be a delay between the organizational event and the policy update.",
+      "<b>Option D</b>, tagging users and using aws:PrincipalTag, is suitable for controlling access based on individual user attributes, not organizational membership. Applying and managing tags for each user across multiple accounts within the organization adds significant operational overhead and is not the appropriate tool for this specific requirement. Furthermore, tagging users across multiple accounts and keeping those tags consistent introduces administrative challenges.",
+      "Therefore, option A provides the most efficient and least complex solution for limiting S3 bucket access to only users of accounts within the organization, by directly referencing the organization ID in the S3 bucket policy, minimizing the manual intervention and operational overhead."
+    ],
+    "correctAnswers": [
+      0
+    ]
+  },
+  {
+    "id": 4,
+    "text": "An application runs on an Amazon EC2 instance in a VPC. The application processes logs that are stored in an Amazon S3 bucket. The EC2 instance needs to access the S3 bucket without connectivity to the internet. Which solution will provide private network connectivity to Amazon S3?",
+    "options": [
+      "Create a gateway VPC endpoint to the S3 bucket.",
+      "Stream the logs to Amazon CloudWatch Logs. Export the logs to the S3 bucket.",
+      "Create an instance profile on Amazon EC2 to allow S3 access.",
+      "Create an Amazon API Gateway API with a private link to access the S3 endpoint."
+    ],
+    "explanation": [
+      "<b>The correct answer is</b> <b>A. Create a gateway VPC endpoint to the S3 bucket.</b>",
+      "<b>Here's why</b>:",
+      "<b>Gateway VPC Endpoints for S3</b>: Gateway VPC endpoints provide private connectivity between your VPC and S3 without requiring an internet gateway, NAT device, VPN connection, or AWS Direct Connect connection. This ensures that traffic between your EC2 instance and S3 remains within the AWS network.",
+      "<b>How it works</b>: When you create a gateway VPC endpoint for S3, a route is automatically added to your VPC's route table. This route directs traffic destined for S3 to the endpoint instead of the internet. The EC2 instance, using its IAM role permissions to access S3, can now reach the S3 bucket privately.",
+      "Let's analyze the other options:",
+      "<b>B. Stream the logs to Amazon CloudWatch Logs. Export the logs to the S3 bucket</b>: While CloudWatch Logs is useful for centralized logging, exporting logs from CloudWatch Logs to S3 still requires connectivity to S3. It doesn't inherently solve the private connectivity requirement. Furthermore, it adds unnecessary complexity and cost.",
+      "<b>C. Create an instance profile on Amazon EC2 to allow S3 access</b>: An instance profile (IAM role) grants permissions to the EC2 instance to access S3, but it doesn't establish private network connectivity. The EC2 instance still needs a way to reach S3 over the network, and without a gateway endpoint, it would need internet access.",
+      "<b>D. Create an Amazon API Gateway API with a private link to access the S3 endpoint</b>: This involves creating an API Gateway and configuring it to use a VPC endpoint service (PrivateLink). While PrivateLink can provide private connectivity, it is typically used for exposing services running within a VPC to other VPCs or on-premises networks, not for a simple EC2 to S3 communication within the same VPC. It is overkill for this scenario and adds significant complexity. Additionally, API Gateway adds latency and cost where the simple gateway endpoint of option A suffices."
+    ],
+    "correctAnswers": [
+      0
+    ]
+  },
+  {
+    "id": 5,
+    "text": "A company is hosting a web application on AWS using a single Amazon EC2 instance that stores user-uploaded documents in an Amazon EBS volume. For better scalability and availability, the company duplicated the architecture and created a second EC2 instance and EBS volume in another Availability Zone, placing both behind an Application Load Balancer. After completing this change, users reported that, each time they refreshed the website, they could see one subset of their documents or the other, but never all of the documents at the same time. What should a solutions architect propose to ensure users see all of their documents at once?",
+    "options": [
+      "Copy the data so both EBS volumes contain all the documents",
+      "Configure the Application Load Balancer to direct a user to the server with the documents",
+      "Copy the data from both EBS volumes to Amazon EFS. Modify the application to save new documents to Amazon EFS",
+      "Configure the Application Load Balancer to send the request to both servers. Return each document from the correct server"
+    ],
+    "explanation": [
+      "<b>The correct answer is</b> C because it addresses the core issue of data consistency across multiple instances. The users are experiencing inconsistent document views because each EC2 instance has a separate EBS volume, and data isn't synchronized between them.",
+      "<b>Option A</b>, copying data between EBS volumes, is a short-term fix that becomes increasingly difficult to manage as the data grows and changes. It doesn't provide a scalable or reliable long-term solution. Consider the overhead involved in constantly syncing large EBS volumes.",
+      "<b>Option B</b>, using the Application Load Balancer to direct users to the server containing the documents, isn't feasible. The load balancer isn't aware of which server holds which documents. It would require complex session management based on document ownership, which is error-prone and inefficient.",
+      "<b>Option D</b>, sending requests to both servers simultaneously, won't resolve the issue. It might even exacerbate the problem by showing fragmented document sets more frequently. There would be significant overhead in merging results from multiple servers and the application would need to manage this complexity.",
+      "<b>Option C</b>, migrating to Amazon EFS, provides a centralized, shared file system accessible by both EC2 instances. EFS ensures data consistency and allows both instances to see the same set of documents. By copying the existing data to EFS and modifying the application to use EFS for storage, all users will access the same data, resolving the inconsistency. EFS is designed for this exact scenario - providing shared storage for multiple compute instances.",
+      "Amazon EFS is well-suited for web applications that require persistent, shared storage. It eliminates the need for data replication and synchronization across instances. It also offers scalability and performance to accommodate growing data needs.",
+      "Therefore, migrating to Amazon EFS is the most effective and scalable solution for ensuring users see all their documents simultaneously."
+    ],
+    "correctAnswers": [
+      2
+    ]
+  },
+  {
+    "id": 6,
+    "text": "A company uses NFS to store large video files in on-premises network attached storage. Each video file ranges in size from 1 MB to 500 GB. The total storage is 70 TB and is no longer growing. The company decides to migrate the video files to Amazon S3. The company must migrate the video files as soon as possible while using the least possible network bandwidth. Which solution will meet these requirements?",
+    "options": [
+      "Create an S3 bucket. Create an IAM role that has permissions to write to the S3 bucket. Use the AWS CLI to copy all files locally to the S3 bucket.",
+      "Create an AWS Snowball Edge job. Receive a Snowball Edge device on-premises. Use the Snowball Edge client to transfer data to the device. Return the device so that AWS can import the data into Amazon S3.",
+      "Deploy an S3 File Gateway on-premises. Create a public service endpoint to connect to the S3 File Gateway. Create an S3 bucket. Create a new NFS file share on the S3 File Gateway. Point the new file share to the S3 bucket. Transfer the data from the existing NFS file share to the S3 File Gateway.",
+      "Set up an AWS Direct Connect connection between the on-premises network and AWS. Deploy an S3 File Gateway on-premises. Create a public virtual interface (VIF) to connect to the S3 File Gateway. Create an S3 bucket. Create a new NFS file share on the S3 File Gateway. Point the new file share to the S3 bucket. Transfer the data from the existing NFS file share to the S3 File Gateway."
+    ],
+    "explanation": [
+      "<b>The correct solution is B:</b> Using AWS Snowball Edge.",
+      "<b>Here's a detailed justification</b>:",
+      "The key requirements are migrating 70 TB of video files to S3 quickly while minimizing network bandwidth usage.",
+      "<b>Option A (AWS CLI)</b>: Copying 70 TB over the internet using the AWS CLI would be extremely slow and consume a significant amount of network bandwidth. This contradicts the requirements.",
+      "<b>Option B (AWS Snowball Edge)</b>: AWS Snowball Edge is designed for transferring large amounts of data offline. AWS ships a physical device (Snowball Edge) to the company. The company then copies the data onto the device locally. Once the transfer is complete, the device is shipped back to AWS, where the data is uploaded to S3. This avoids network bandwidth usage and enables a much faster transfer compared to online methods for this volume of data. The 70 TB size falls within the typical Snowball Edge capacity. This aligns perfectly with the requirements of minimizing bandwidth and ensuring a swift transfer.",
+      "<b>Option C (S3 File Gateway with Public Service Endpoint)</b>: S3 File Gateway would cache the data before uploading it to S3. While it provides an NFS interface, it still requires transferring the data over the internet, which contradicts the requirement of minimizing network bandwidth. A public service endpoint still means data traversing the public internet. Furthermore, introducing File Gateway for a one-time migration adds unnecessary complexity.",
+      "<b>Option D (S3 File Gateway with AWS Direct Connect)</b>: While Direct Connect provides a dedicated, faster connection to AWS, setting it up solely for a one-time migration is an overkill and adds significant cost and complexity. It doesn't eliminate the need to transfer 70 TB of data over a network.",
+      "Therefore, AWS Snowball Edge is the optimal solution because it directly addresses the constraints of large data volume and limited network bandwidth. It is significantly faster than transferring over the internet and avoids ongoing network usage."
+    ],
+    "correctAnswers": [
+      1
+    ]
+  },
+  {
+    "id": 7,
+    "text": "A company has an application that ingests incoming messages. Dozens of other applications and microservices then quickly consume these messages. The number of messages varies drastically and sometimes increases suddenly to 100,000 each second. The company wants to decouple the solution and increase scalability. Which solution meets these requirements?",
+    "options": [
+      "Persist the messages to Amazon Kinesis Data Analytics. Configure the consumer applications to read and process the messages.",
+      "Deploy the ingestion application on Amazon EC2 instances in an Auto Scaling group to scale the number of EC2 instances based on CPU metrics.",
+      "Write the messages to Amazon Kinesis Data Streams with a single shard. Use an AWS Lambda function to preprocess messages and store them in Amazon DynamoDB. Configure the consumer applications to read from DynamoDB to process the messages.",
+      "Publish the messages to an Amazon Simple Notification Service (Amazon SNS) topic with multiple Amazon Simple Queue Service (Amazon SQS) subscriptions. Configure the consumer applications to process the messages from the queues."
+    ],
+    "explanation": [
+      "<b>Here's a detailed justification</b> for why option D is the best solution, along with supporting concepts and links:",
+      "The scenario demands a highly scalable and decoupled message ingestion and consumption system. Let's analyze why option D, using Amazon SNS and SQS, best fulfills these requirements.",
+      "<b>Option D</b> (SNS and SQS) utilizes the publish-subscribe pattern offered by SNS and the message queuing capabilities of SQS. The ingestion application publishes messages to an SNS topic. Multiple SQS queues subscribe to this topic. Each consumer application then pulls messages from its own dedicated SQS queue. This provides excellent decoupling because the ingestion application is unaware of the consumers, and the consumers are isolated from each other. This isolation is crucial for scalability; if one consumer fails or becomes overloaded, it doesn't impact the others or the ingestion process. SQS provides buffering for messages, preventing data loss during surges.",
+      "SNS is designed for high-throughput, enabling it to handle the peak load of 100,000 messages per second. SQS, being a fully managed queuing service, automatically scales to handle the message volume. The combination ensures messages are reliably delivered to all subscribed consumers without overwhelming them. SQS also facilitates asynchronous processing, allowing consumers to process messages at their own pace.",
+      "Now, let's look at why the other options are less suitable.",
+      "<b>Option A</b> (Kinesis Data Analytics) is designed for real-time data processing and analytics, not primarily for decoupling and distribution to multiple consumers. While it can process messages, it's not as efficient for simply fanning them out to many downstream applications.",
+      "<b>Option B</b> (EC2 Auto Scaling) addresses the scaling of the ingestion application, but not the decoupling or scaling of the message delivery to consumers. It doesn't solve the problem of distributing messages effectively to multiple, independent consumers.",
+      "<b>Option C</b> (Kinesis Data Streams and DynamoDB) introduces unnecessary complexity. Kinesis Data Streams can handle high throughput, but using a single shard would create a bottleneck. DynamoDB as an intermediary storage adds latency and complexity compared to the direct delivery from SQS. Furthermore, polling DynamoDB would not scale nearly as efficiently as SQS queues.",
+      "In summary, option D is the most appropriate choice because it directly addresses the requirements for decoupling, scalability, and reliable message delivery to multiple consumers using services specifically designed for these purposes."
+    ],
+    "correctAnswers": [
+      3
+    ]
+  },
+  {
+    "id": 8,
+    "text": "A company is migrating a distributed application to AWS. The application serves variable workloads. The legacy platform consists of a primary server that coordinates jobs across multiple compute nodes. The company wants to modernize the application with a solution that maximizes resiliency and scalability. How should a solutions architect design the architecture to meet these requirements?",
+    "options": [
+      "Configure an Amazon Simple Queue Service (Amazon SQS) queue as a destination for the jobs. Implement the compute nodes with Amazon EC2 instances that are managed in an Auto Scaling group. Configure EC2 Auto Scaling to use scheduled scaling.",
+      "Configure an Amazon Simple Queue Service (Amazon SQS) queue as a destination for the jobs. Implement the compute nodes with Amazon EC2 instances that are managed in an Auto Scaling group. Configure EC2 Auto Scaling based on the size of the queue.",
+      "Implement the primary server and the compute nodes with Amazon EC2 instances that are managed in an Auto Scaling group. Configure AWS CloudTrail as a destination for the jobs. Configure EC2 Auto Scaling based on the load on the primary server.",
+      "Implement the primary server and the compute nodes with Amazon EC2 instances that are managed in an Auto Scaling group. Configure Amazon EventBridge (Amazon CloudWatch Events) as a destination for the jobs. Configure EC2 Auto Scaling based on the load on the compute nodes."
+    ],
+    "explanation": [
+      "<b>The correct answer is</b> B. <b>Here's why</b>:",
+      "The problem statement emphasizes resiliency, scalability, and variable workloads. <b>Option B</b> best addresses these requirements.",
+      "<b>Amazon SQS</b>: Using SQS decouples the primary server (job coordinator) from the compute nodes. This promotes resiliency. If the primary server fails, the messages in the queue persist, and processing can resume when a new primary server is available.",
+      "<b>EC2 Auto Scaling Group</b>: Placing the compute nodes in an Auto Scaling group provides scalability and high availability. Auto Scaling automatically adjusts the number of EC2 instances based on demand. This ensures that the application can handle variable workloads efficiently.",
+      "<b>Scaling based on Queue Size</b>: Configuring Auto Scaling to scale based on the size of the SQS queue is crucial. As the queue grows (more jobs are waiting), Auto Scaling will launch more EC2 instances to process the jobs. Conversely, if the queue shrinks, Auto Scaling can terminate instances to reduce costs. This reactive, queue-driven scaling aligns directly with the variable workload requirement.",
+      "<b>Option A</b> is incorrect because scheduled scaling doesn't react to real-time workload changes. It scales instances at predefined times regardless of the actual queue size. While useful for predictable workload patterns, it's less effective for variable workloads.",
+      "<b>Option C</b> is incorrect because CloudTrail is an auditing service, not a job queue. Furthermore, scaling based on the primary server's load doesn't directly reflect the number of waiting jobs. If the primary server is overloaded, that is a symptom of a problem, not the core driver for scaling compute nodes.",
+      "<b>Option D</b> is incorrect because EventBridge (formerly CloudWatch Events) is typically used for event-driven architectures, not as a direct queue for jobs in this scenario. Also, scaling based on the load of the compute nodes becomes a lagging metric. The queue length provides earlier indication that scaling is needed. Furthermore, managing the primary server within the auto-scaling group might be more complex than necessary and is less resilient compared to the option leveraging SQS."
+    ],
+    "correctAnswers": [
+      1
+    ]
+  },
+  {
+    "id": 9,
+    "text": "A company is running an SMB file server in its data center. The file server stores large files that are accessed frequently for the first few days after the files are created. After 7 days the files are rarely accessed. The total data size is increasing and is close to the company's total storage capacity. A solutions architect must increase the company's available storage space without losing low-latency access to the most recently accessed files. The solutions architect must also provide file lifecycle management to avoid future storage issues. Which solution will meet these requirements?",
+    "options": [
+      "Use AWS DataSync to copy data that is older than 7 days from the SMB file server to AWS.",
+      "Create an Amazon S3 File Gateway to extend the company's storage space. Create an S3 Lifecycle policy to transition the data to S3 Glacier Deep Archive after 7 days.",
+      "Create an Amazon FSx for Windows File Server file system to extend the company's storage space.",
+      "Install a utility on each user's computer to access Amazon S3. Create an S3 Lifecycle policy to transition the data to S3 Glacier Flexible Retrieval after 7 days."
+    ],
+    "explanation": [
+      "The correct solution is B, which involves using Amazon S3 File Gateway and S3 Lifecycle policies. <b>Here's why</b>:",
+      "<b>S3 File Gateway</b>: This service provides a seamless way to extend on-premises file storage to Amazon S3 without requiring significant application changes. It presents a local file system interface to the on-premises SMB server, which then transparently caches frequently accessed data locally while storing the full dataset in S3. This addresses the requirement for low-latency access to recent files.",
+      "<b>S3 Lifecycle Policies</b>: These policies automate the process of moving less frequently accessed data to lower-cost storage tiers such as S3 Glacier Deep Archive after a specified period (7 days in this case). This addresses the requirement for file lifecycle management and helps to reduce storage costs without deleting the data. S3 Glacier Deep Archive is suitable for long-term archival where retrieval times of several hours are acceptable.",
+      "<b>Option A</b> is incorrect because AWS DataSync is primarily a data migration tool, not a continuous storage extension solution. It would require ongoing manual or scripted execution to move files after 7 days, which is less efficient than a managed solution like S3 File Gateway with lifecycle policies.",
+      "<b>Option C</b> is not ideal because Amazon FSx for Windows File Server is a fully managed Windows file server in the cloud. While it provides scalable storage, it doesn't directly address the need to seamlessly integrate with the existing on-premises SMB server and leverage cheaper archival storage. It would be better suited as a complete replacement to the on-premise server.",
+      "<b>Option D</b> is incorrect because it involves manually installing a utility on each user's computer. It is complex to manage and prone to user error. Additionally, while S3 Lifecycle policies are used, S3 Glacier Flexible Retrieval is a more expensive storage option than Glacier Deep Archive for archival purposes. This is not an ideal solution.",
+      "In summary, option B provides the most cost-effective and manageable solution for extending on-premises file storage to the cloud, maintaining low-latency access to recent files, and implementing automated lifecycle management."
+    ],
+    "correctAnswers": [
+      1
+    ]
+  },
+  {
+    "id": 10,
+    "text": "A company is building an ecommerce web application on AWS. The application sends information about new orders to an Amazon API Gateway REST API to process. The company wants to ensure that orders are processed in the order that they are received. Which solution will meet these requirements?",
+    "options": [
+      "Use an API Gateway integration to publish a message to an Amazon Simple Notification Service (Amazon SNS) topic when the application receives an order. Subscribe an AWS Lambda function to the topic to perform processing.",
+      "Use an API Gateway integration to send a message to an Amazon Simple Queue Service (Amazon SQS) FIFO queue when the application receives an order. Configure the SQS FIFO queue to invoke an AWS Lambda function for processing.",
+      "Use an API Gateway authorizer to block any requests while the application processes an order.",
+      "Use an API Gateway integration to send a message to an Amazon Simple Queue Service (Amazon SQS) standard queue when the application receives an order. Configure the SQS standard queue to invoke an AWS Lambda function for processing."
+    ],
+    "explanation": [
+      "<b>The correct answer is</b> B because it directly addresses the requirement of processing orders in the order they are received. <b>Here's why</b>:",
+      "<b>FIFO (First-In, First-Out) Queues</b>: Amazon SQS FIFO queues guarantee that messages are retrieved from the queue in the exact order they were placed. This is crucial for order processing, where the sequence of events matters.",
+      "<b>API Gateway Integration</b>: Integrating API Gateway with SQS allows you to seamlessly send order data received through the API directly into the FIFO queue.",
+      "<b>Lambda Function Invocation</b>: Configuring the SQS queue to invoke a Lambda function on message arrival ensures that each order is automatically processed as it becomes available in the queue.",
+      "<b>Option A</b> is incorrect because Amazon SNS is a publish/subscribe service, not a queuing service. It's designed for broadcasting messages to multiple subscribers simultaneously, not for preserving the order of messages. This makes SNS unsuitable for ordered processing.",
+      "<b>Option C</b> is incorrect because API Gateway authorizers are used for authentication and authorization, not for controlling the processing order of requests. Blocking requests with an authorizer might prevent processing altogether, but won't guarantee correct sequencing.",
+      "<b>Option D</b> is incorrect because Amazon SQS standard queues do not guarantee message order. While they aim for best-effort ordering, messages can sometimes be delivered out of sequence, which violates the stated requirement.",
+      "In summary, using an API Gateway integrated with an SQS FIFO queue and a Lambda function ensures that order information is captured in the correct sequence and then processed sequentially, meeting the application's specific requirements. This approach leverages the ordered message delivery capability of FIFO queues to maintain data integrity within the ecommerce application's workflow."
+    ],
+    "correctAnswers": [
+      1
+    ]
+  }
+]
