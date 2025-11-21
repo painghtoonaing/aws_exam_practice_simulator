@@ -1,6 +1,6 @@
 # AWS Certified Solutions Architect Practice Exam (SAA-C03)
 
-An interactive, web-based practice exam application designed to help candidates prepare for the AWS Certified Solutions Architect Associate (SAA-C03) exam. This application provides a realistic exam environment with features that simulate the actual certification experience.
+An interactive, web-based practice exam application designed to help candidates prepare for the AWS Certified Solutions Architect Associate (SAA-C03) exam. This application provides a realistic exam environment with features that simulate the actual certification experience. The application now uses a database backend for persistent storage of questions.
 
 ## 🚀 Features
 
@@ -16,7 +16,8 @@ An interactive, web-based practice exam application designed to help candidates 
   - Correct/incorrect counters
   - Progress bar
 - **Detailed Explanations:** Each question includes comprehensive explanations for the correct answers
-- **Question Management Tool:** Built-in editor for adding, modifying, or removing questions
+- **Question Management Tool:** Built-in editor for adding, modifying, or removing questions with database persistence
+- **Backup/Restore Functionality:** Create and restore question backups from JSON files
 - **Dark/Light Theme:** Toggle between dark and light modes for comfortable studying
 - **Local Storage:** Progress is saved automatically in the browser
 - **Multi-select Support:** Handles both single and multiple correct answer questions
@@ -24,43 +25,43 @@ An interactive, web-based practice exam application designed to help candidates 
 
 ## 📋 Prerequisites
 
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Local web server (for loading questions.json file)
+- Node.js (v14 or higher)
+- npm or yarn package manager
 
 ## 🔧 Setup Instructions
 
-### Option 1: Local Server (Recommended)
-
-The application uses the `fetch` API to load questions from the `questions.json` file. Due to browser security restrictions, this won't work when opening `index.html` directly in the browser. You need to serve the files through a local web server.
-
 1. Clone or download this repository to your local machine
-2. Start a local web server:
-
-For Python 3:
+2. Navigate to the project directory:
 ```bash
+cd aws_exam_practice_simulator
+```
+
+3. Install the required dependencies:
+```bash
+npm install
+```
+
+4. Start the backend server:
+```bash
+npm start
+```
+This will start the Express.js server with SQLite database on `http://localhost:3000`
+
+5. Serve the frontend using any local server. You can use Python's built-in server:
+```bash
+# In a new terminal, from the project directory
 python -m http.server 8000
 ```
-
-For Python 2:
+Or use a Node.js server:
 ```bash
-python -m SimpleHTTPServer 8000
+# Install node server if not already installed
+npm install -g http-server
+
+# Serve the application
+http-server
 ```
 
-For Node.js (with live-server):
-```bash
-npm install -g live-server
-live-server
-```
-
-3. Navigate to `http://localhost:8000` (or the address indicated by your server)
-
-### Option 2: Browser with Disabled Security (Not Recommended)
-
-For Chrome (development only):
-```bash
-chrome --disable-web-security --user-data-dir="C:/temp/chrome_dev"
-```
-**Note:** This method is not recommended for regular use as it disables browser security features.
+6. Navigate to `http://localhost:8000` (or the address indicated by your server) to access the frontend
 
 ## 🎯 Usage
 
@@ -75,9 +76,9 @@ chrome --disable-web-security --user-data-dir="C:/temp/chrome_dev"
 5. Navigate between questions using "Previous" and "Next" buttons
 6. Track your progress using the statistics in the header
 
-### Question Management
+### Question Management & Backup/Restore
 
-The application includes a powerful question management tool:
+The application includes a powerful question management tool with backup/restore capabilities:
 
 1. Click the "Question Manager" button in the sidebar
 2. Browse, search, and edit existing questions
@@ -86,7 +87,9 @@ The application includes a powerful question management tool:
    - Rich text editor for explanations
    - Support for multiple answer options
    - Correct answer indexing (0-based)
-4. Click "Download JSON" to save your changes to `questions.json`
+
+4. **Backup Questions:** Click "Backup Questions" to download a JSON backup of all questions in the database
+5. **Restore Questions:** Click "Restore Questions" to upload a JSON backup file and replace all current questions
 
 ### Filtering Questions
 
@@ -108,34 +111,36 @@ AWS_EXAM_PRACTICE_V2/
 ├── index.html          # Main application HTML
 ├── script.js           # Application logic and question management
 ├── styles.css          # Application styling
-├── questions.json      # Question database
+├── server.js           # Backend API server with database integration
+├── prisma/
+│   ├── schema.prisma   # Prisma schema definition
+│   └── dev.db          # SQLite database file
 ├── img/
 │   └── aws-logo.svg    # AWS logo
+├── package.json        # Node.js dependencies and scripts
 └── README.md           # This file
 ```
 
-## ⚙️ Customizing Questions
+## 🛠️ Backend API Endpoints
 
-The `questions.json` file contains all exam questions in the following format:
+The application uses the following API endpoints:
 
-```json
-{
-  "id": 1,
-  "text": "Question text here",
-  "options": [
-    "Option A",
-    "Option B",
-    "Option C",
-    "Option D"
-  ],
-  "explanation": [
-    "Explanation of the correct answer"
-  ],
-  "correctAnswers": [0]  // Array indices of correct options (0-based)
-}
-```
+- `GET /api/questions` - Get all questions
+- `GET /api/questions/:id` - Get a specific question by ID
+- `POST /api/questions` - Create a new question
+- `PUT /api/questions/:id` - Update an existing question
+- `DELETE /api/questions/:id` - Delete a question
+- `GET /api/backup` - Download all questions as JSON backup
+- `POST /api/restore` - Restore questions from JSON backup
+- `GET /api/health` - Health check endpoint
 
-- `correctAnswers` should contain an array of indices corresponding to the correct options
-- For single-answer questions, use a single index: `[0]`
-- For multiple-answer questions, use multiple indices: `[0, 2]`
-- The explanation can be a string or an array of paragraphs
+## 🚨 Important Notes
+
+- The application now uses a SQLite database (`prisma/dev.db`) to store questions permanently
+- Questions created or modified in the admin panel are saved directly to the database
+- Use the backup/restore functionality to export/import question sets
+- The backend server (on port 3000) must be running for the application to function properly
+
+## 🤝 Contributing
+
+Feel free to submit issues and enhancement requests. For major changes, please open an issue first to discuss what you would like to change.

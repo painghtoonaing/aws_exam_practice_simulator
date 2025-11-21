@@ -1,15 +1,20 @@
 // Application state
 let questions = [];
 let currentQuestionIndex = 0;
-let userAnswers = {};  
+let userAnswers = {};
 let showExplanation = false;
 let questionOrder = [];
 let isRandomMode = false;
 let filterMode = 'all'; // 'all', 'incorrect', 'unanswered'
-let practiceMode = false; 
+let practiceMode = false;
 let saveProgressTimeout = null;
 let questionsLoaded = false;
 let practiceQuestionPool = [];
+
+// API Configuration
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : window.location.origin;
 
 // --- ADMIN STATE ---
 let quillQuestionEditor;
@@ -68,7 +73,9 @@ const exitAdminBtn = document.getElementById('exit-admin-btn');
 const adminQuestionList = document.getElementById('admin-question-list');
 const adminSearchInput = document.getElementById('admin-search-input');
 const addNewQuestionBtn = document.getElementById('add-new-question-btn');
-const downloadJsonBtn = document.getElementById('download-json-btn');
+const backupQuestionsBtn = document.getElementById('backup-questions-btn');
+const restoreQuestionsBtn = document.getElementById('restore-questions-btn');
+const restoreFileInput = document.getElementById('restore-file-input');
 const adminOptionsContainer = document.getElementById('admin-options-container');
 const addOptionBtn = document.getElementById('add-option-btn');
 const questionEditorForm = document.getElementById('question-editor-form');
@@ -116,23 +123,24 @@ function init() {
     });
 
     // --- ADMIN EVENT LISTENERS ---
-    manageQuestionsBtn.addEventListener('click', openAdminPanel);
+    manageQuestionsBtn.addEventListener('click', () => openAdminPanel());
     exitAdminBtn.addEventListener('click', closeAdminPanel);
     addNewQuestionBtn.addEventListener('click', initNewQuestion);
     addOptionBtn.addEventListener('click', () => addOptionInput(''));
     questionEditorForm.addEventListener('submit', saveAdminQuestion);
     deleteQuestionBtn.addEventListener('click', deleteCurrentQuestion);
-    downloadJsonBtn.addEventListener('click', downloadQuestionsAsJson);
-    adminSearchInput.addEventListener('input', (e) => renderAdminList(e.target.value));
+    backupQuestionsBtn.addEventListener('click', backupQuestions);
+    restoreQuestionsBtn.addEventListener('click', () => restoreFileInput.click());
+    restoreFileInput.addEventListener('change', handleRestoreFile);
+    adminSearchInput.addEventListener('input', async (e) => await renderAdminList(e.target.value));
     
     loadQuestionsData();
 }
 
 async function loadQuestionsData() {
     try {
-        // Attempt to load from local file (won't work with file:// protocol without flags)
-        // For a static site, this is the source of truth initially.
-        const response = await fetch('questions.json', { cache: 'no-cache' });
+        // Fetch questions from the API backend
+        const response = await fetch(`${API_BASE_URL}/api/questions`, { cache: 'no-cache' });
         if (!response.ok) {
             throw new Error(`Failed to load questions: ${response.status}`);
         }
@@ -141,7 +149,7 @@ async function loadQuestionsData() {
         initializeQuestionState();
     } catch (error) {
         console.error('Error loading questions:', error);
-        questionTextEl.innerHTML = formatQuestionText('Failed to load questions. If you are running locally, ensure you use a local server (e.g., Live Server).');
+        questionTextEl.innerHTML = formatQuestionText('Failed to load questions from the API. Ensure the backend server is running.');
         optionsContainerEl.innerHTML = '';
     }
 }
@@ -669,7 +677,7 @@ function selectRandomSubset(count, total) {
 // ADMIN / QUESTION MANAGER FUNCTIONS
 // ==========================================
 
-function openAdminPanel() {
+async function openAdminPanel() {
     if (!ensureQuestionsReady()) return;
 
     // Initialize Quill editors if not already done
@@ -689,32 +697,57 @@ function openAdminPanel() {
     // Hide exam view, show admin view
     examView.classList.add('hidden');
     adminView.classList.remove('hidden');
-    
+
     // Hide sidebar via main layout class
     mainLayoutEl.classList.add('admin-mode');
-    
-    renderAdminList();
+
+    await renderAdminList();
     // Select the first question or start blank
     if (questions.length > 0) {
-        loadAdminQuestion(0);
+        await loadAdminQuestion(0);
     } else {
-        initNewQuestion();
+        await initNewQuestion();
     }
 }
 
-function closeAdminPanel() {
+async function closeAdminPanel() {
     adminView.classList.add('hidden');
     examView.classList.remove('hidden');
-    
+
     // Show sidebar
     mainLayoutEl.classList.remove('admin-mode');
 
     // Reload question state in case edits affected current view
+    // Fetch updated questions from API
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/questions`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch questions: ${response.status}`);
+        }
+        questions = await response.json();
+        questionsLoaded = true;
+    } catch (error) {
+        console.error('Error refreshing questions after closing admin panel:', error);
+    }
+
     initializeQuestionState();
     refreshMetrics();
 }
 
-function renderAdminList(searchTerm = '') {
+async function renderAdminList(searchTerm = '') {
+    try {
+        // Fetch the latest questions from the API to ensure we have the most up-to-date data
+        const response = await fetch(`${API_BASE_URL}/api/questions`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch questions: ${response.status}`);
+        }
+        questions = await response.json();
+        questionsLoaded = true;
+    } catch (error) {
+        console.error('Error refreshing questions list:', error);
+        alert(`Error refreshing questions list: ${error.message}`);
+    }
+
     adminQuestionList.innerHTML = '';
     searchTerm = searchTerm.toLowerCase();
 
@@ -723,7 +756,7 @@ function renderAdminList(searchTerm = '') {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = q.text;
         const textContent = tempDiv.textContent || tempDiv.innerText || '';
-        
+
         if (searchTerm && !textContent.toLowerCase().includes(searchTerm) && !q.id.toString().includes(searchTerm)) {
             return;
         }
@@ -736,19 +769,32 @@ function renderAdminList(searchTerm = '') {
     });
 }
 
-function loadAdminQuestion(index) {
+async function loadAdminQuestion(index) {
+    // Fetch the latest questions to ensure we have the most up-to-date data
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/questions`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch questions: ${response.status}`);
+        }
+        questions = await response.json();
+        questionsLoaded = true;
+    } catch (error) {
+        console.error('Error refreshing questions:', error);
+        alert(`Error refreshing questions: ${error.message}`);
+    }
+
     currentAdminQuestionIndex = index;
     renderAdminList(adminSearchInput.value); // Refresh highlighting
-    
+
     const q = questions[index];
     if(!q) return;
 
     // Populate Form
     document.getElementById('edit-question-id').value = q.id;
-    
+
     // Set Quill Content
     quillQuestionEditor.root.innerHTML = q.text;
-    
+
     // Handle Explanation (could be array or string in JSON)
     const expl = Array.isArray(q.explanation) ? q.explanation.join('<br>') : q.explanation;
     quillExplanationEditor.root.innerHTML = expl;
@@ -764,7 +810,20 @@ function loadAdminQuestion(index) {
     deleteQuestionBtn.style.display = 'block';
 }
 
-function initNewQuestion() {
+async function initNewQuestion() {
+    // Fetch the latest questions to ensure we have the most up-to-date data
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/questions`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch questions: ${response.status}`);
+        }
+        questions = await response.json();
+        questionsLoaded = true;
+    } catch (error) {
+        console.error('Error refreshing questions:', error);
+        alert(`Error refreshing questions: ${error.message}`);
+    }
+
     currentAdminQuestionIndex = -1;
     // Clear highlighting
     const active = document.querySelector('.admin-list-item.active');
@@ -774,10 +833,10 @@ function initNewQuestion() {
     quillQuestionEditor.root.innerHTML = '';
     quillExplanationEditor.root.innerHTML = '';
     adminOptionsContainer.innerHTML = '';
-    
+
     // Add 4 empty options by default
     for(let i=0; i<4; i++) addOptionInput('');
-    
+
     editCorrectAnswersInput.value = '';
     deleteQuestionBtn.style.display = 'none';
 }
@@ -807,61 +866,120 @@ window.removeOptionInput = function(btn) {
     });
 }
 
-function saveAdminQuestion(e) {
+async function saveAdminQuestion(e) {
     e.preventDefault();
-    
+
     const text = quillQuestionEditor.root.innerHTML;
     const explanationRaw = quillExplanationEditor.root.innerHTML;
-    
-    // Convert explanations back to array of paragraphs for consistency with original JSON style, 
+
+    // Convert explanations back to array of paragraphs for consistency with original JSON style,
     // although string with <br> is also fine. Let's keep it simple: array with one string containing HTML.
-    const explanation = [explanationRaw]; 
-    
+    const explanation = [explanationRaw];
+
     const optionInputs = Array.from(document.querySelectorAll('.admin-option-input'));
     const options = optionInputs.map(input => input.value);
-    
+
     const correctInput = editCorrectAnswersInput.value;
     const correctAnswers = correctInput.split(',')
         .map(s => parseInt(s.trim()))
         .filter(n => !isNaN(n));
-    
+
     if (correctAnswers.length === 0) {
         alert('Please specify at least one correct answer index (e.g., 0 for A).');
         return;
     }
-    
+
     // Validation: check if indices are within options range
     if (correctAnswers.some(idx => idx < 0 || idx >= options.length)) {
         alert(`Correct answer index must be between 0 and ${options.length - 1}.`);
         return;
     }
 
-    const newQ = {
-        id: currentAdminQuestionIndex === -1 ? generateNewId() : questions[currentAdminQuestionIndex].id,
+    const questionData = {
         text,
         options,
         correctAnswers,
         explanation
     };
 
-    if (currentAdminQuestionIndex === -1) {
-        questions.push(newQ);
-        currentAdminQuestionIndex = questions.length - 1;
-    } else {
-        questions[currentAdminQuestionIndex] = newQ;
+    try {
+        if (currentAdminQuestionIndex === -1) {
+            // Create new question
+            const response = await fetch(`${API_BASE_URL}/api/questions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(questionData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to save question: ${response.status}`);
+            }
+
+            const savedQuestion = await response.json();
+            // Add to local questions array for immediate UI update
+            questions.push(savedQuestion);
+            currentAdminQuestionIndex = questions.length - 1;
+
+            alert('New question saved successfully!');
+        } else {
+            // Update existing question
+            const questionId = questions[currentAdminQuestionIndex].id;
+            const response = await fetch(`${API_BASE_URL}/api/questions/${questionId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(questionData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to update question: ${response.status}`);
+            }
+
+            const updatedQuestion = await response.json();
+            // Update local questions array
+            questions[currentAdminQuestionIndex] = updatedQuestion;
+
+            alert('Question updated successfully!');
+        }
+
+        // Refresh the admin list
+        renderAdminList(adminSearchInput.value);
+        loadAdminQuestion(currentAdminQuestionIndex);
+    } catch (error) {
+        console.error('Error saving question:', error);
+        alert(`Error saving question: ${error.message}`);
     }
-    
-    alert('Question Saved! Remember to click "Download JSON" to save your changes to disk.');
-    renderAdminList(adminSearchInput.value);
-    loadAdminQuestion(currentAdminQuestionIndex); 
 }
 
-function deleteCurrentQuestion() {
+async function deleteCurrentQuestion() {
     if (currentAdminQuestionIndex === -1) return;
-    if (confirm('Are you sure you want to delete this question?')) {
-        questions.splice(currentAdminQuestionIndex, 1);
-        initNewQuestion();
-        renderAdminList(adminSearchInput.value);
+
+    const question = questions[currentAdminQuestionIndex];
+    if (confirm(`Are you sure you want to delete question ${question.id}: "${question.text.substring(0, 50)}..."?`)) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/questions/${question.id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to delete question: ${response.status}`);
+            }
+
+            // Remove from local questions array
+            questions.splice(currentAdminQuestionIndex, 1);
+
+            // Reload the admin panel
+            initNewQuestion();
+            renderAdminList(adminSearchInput.value);
+
+            alert('Question deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting question:', error);
+            alert(`Error deleting question: ${error.message}`);
+        }
     }
 }
 
@@ -872,14 +990,81 @@ function generateNewId() {
     return maxId + 1;
 }
 
-function downloadQuestionsAsJson() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questions, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "questions.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+
+// Backup questions to a JSON file
+async function backupQuestions() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/backup`);
+        if (!response.ok) {
+            throw new Error(`Failed to create backup: ${response.status}`);
+        }
+
+        const questions = await response.json();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questions, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `questions-backup-${new Date().toISOString().slice(0, 19)}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+
+        alert(`Backup created successfully! ${questions.length} questions exported.`);
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        alert(`Error creating backup: ${error.message}`);
+    }
+}
+
+// Handle restore file selection
+async function handleRestoreFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.json')) {
+        alert('Please select a valid JSON file.');
+        return;
+    }
+
+    const confirmRestore = confirm('This will replace all current questions with the backup data. Continue?');
+    if (!confirmRestore) {
+        event.target.value = ''; // Reset file input
+        return;
+    }
+
+    try {
+        const text = await file.text();
+        const questions = JSON.parse(text);
+
+        if (!Array.isArray(questions)) {
+            throw new Error('Invalid backup file format');
+        }
+
+        // Send the questions to the API for restore
+        const response = await fetch(`${API_BASE_URL}/api/restore`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(questions)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Failed to restore: ${response.status}`);
+        }
+
+        const result = await response.json();
+        alert(result.message);
+
+        // Optionally refresh the admin panel
+        await openAdminPanel();
+
+    } catch (error) {
+        console.error('Error restoring questions:', error);
+        alert(`Error restoring questions: ${error.message}`);
+    } finally {
+        event.target.value = ''; // Reset file input
+    }
 }
 
 // Init on load
