@@ -717,12 +717,60 @@ footer {
 @media (max-width: 768px) {
     .header-content {
         flex-direction: column;
-        gap: 15px;
+        gap: 10px; /* Reduce gap for more compact layout */
+        align-items: stretch; /* Allow items to take full width */
+        position: relative; /* Establish positioning context */
     }
+
+    /* Make header non-sticky on mobile to save screen space */
+    header {
+        position: static;
+        padding: 15px 0;
+    }
+
+    /* Position theme toggle at the top right */
+    .theme-toggle {
+        position: absolute;
+        right: 20px;
+        top: 15px; /* Adjust position */
+        z-index: 10; /* Ensure it's above other elements */
+    }
+
+    .logo {
+        display: none; /* Hide logo on mobile devices */
+    }
+
     .stats {
         width: 100%;
-        justify-content: space-around;
+        justify-content: space-around; /* Evenly space stats across the width */
+        flex-wrap: nowrap; /* Prevent wrapping on mobile to keep them visible */
+        gap: 10px; /* Provide good spacing */
+        order: 1; /* Position stats first (at the top) */
+        margin-top: 5px; /* Add some space from the top */
+        padding: 0 10px; /* Add horizontal padding */
     }
+
+    .stat-item {
+        min-width: 65px; /* Ensure space for both value and label */
+        text-align: center; /* Center text in each stat */
+        padding: 8px 5px; /* Add vertical padding for better readability */
+        flex: 1; /* Allow items to grow equally */
+    }
+
+    .stat-value {
+        font-size: 18px; /* Slightly smaller font for mobile */
+        display: block; /* Ensure value is on its own line */
+        margin-bottom: 3px; /* Add space between value and label */
+    }
+
+    .stat-label {
+        font-size: 11px; /* Adjust font size for better fit */
+        display: block; /* Ensure label is on its own line */
+        margin-top: 2px;
+        opacity: 0.9; /* Ensure full visibility */
+        font-weight: 600; /* Make labels more prominent */
+    }
+
     .controls {
         flex-direction: column;
         gap: 15px;
